@@ -86,6 +86,114 @@ end
 
 
 
+<aliases>
+    <alias
+     match="^winds\s+id(?<keyword>.*)$"
+     enabled="y"
+     script="Inv.identify"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+</aliases>
+
+<triggers>
+    <trigger
+     name="trigger_inv_case_start"
+     match="^You have (?:the following|no) cards stored[:.]$"
+     enabled="n"
+     script="Inv.case_start"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="triggerg_inv_case"
+     match="^\|\s+Keywords\s+:(?<keywords>.+)\|$"
+     enabled="n"
+     script="Inv.case_keywords"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="triggerg_inv_case"
+     match="^\|\s+Id\s+:(?<id>.+)\|$"
+     enabled="n"
+     script="Inv.case_id"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     name="trigger_inv_case_end"
+     group="triggerg_inv_case"
+     match="^\{/id\}$"
+     enabled="n"
+     script="Inv.case_end"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+</triggers>
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- Inv
+--------------------------------------------------
+
+Inv = {}
+
+function Inv.initialize()
+    Inv.clear_data()
+end
+
+function Inv.clear_data()
+    Inv.case = {}
+    Inv.dupes = {}
+end
+
+function Inv.identify(alias, line, wc)
+    local keyword = trim(wc.keyword)
+    if (keyword == "") then
+        Utility.msg_prim("Identify what?")
+        return
+    end
+    
+    Inv.clear_data()
+    EnableTrigger("trigger_inv_case_start", true)
+    EnableTrigger("trigger_inv_case_end", true)
+    SendNoEcho("identify " .. keyword)
+    -- Rezit decided to add a blank line between stored list and identify output,
+    -- so add an ending echo of our own...
+SendNoEcho("echo {/id}")
+end
+
+function Inv.case_start(trigger, line, wc)
+    EnableTrigger("trigger_inv_case_start", false)
+    EnableTriggerGroup("triggerg_inv_case", true)
+end
+
+function Inv.case_keywords(trigger, line, wc)
+    Inv.case.keywords = trim(wc.keywords)
+end
+
+function Inv.case_id(trigger, line, wc)
+    Inv.case.id = trim(wc.id)
+end
+
+function Inv.case_end(trigger, line, wc)
+    EnableTrigger("trigger_inv_case_start", false)
+    EnableTriggerGroup("triggerg_inv_case", false)
+end
+]]>
+</script>
+
+
+
 <script>
 <![CDATA[
 --------------------------------------------------
@@ -97,6 +205,7 @@ Utility = {}
 function Utility.initialize()
     local modules = {
         Config,
+        Inv,
     }
     for _, module in ipairs(modules) do
         if (module.initialize) then
