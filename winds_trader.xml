@@ -44,6 +44,7 @@ require "tprint"
 require "var"
 require "wait"
 dofile(GetInfo(60) .. "aardwolf_colors.lua")
+dofile(GetInfo(60) .. "telnet_options.lua")
 
 
 
@@ -96,6 +97,15 @@ end
      sequence="100"
     >
     </alias>
+    <alias
+     match="^winds\s+extras(?<location>.*)$"
+     enabled="y"
+     script="Inv.inventory"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
 </aliases>
 
 <triggers>
@@ -137,6 +147,35 @@ end
      sequence="100"
     >
     </trigger>
+    
+    <trigger
+     name="trigger_inv_extras_start"
+     match="^(?:You are carrying|The .+ contains):$"
+     enabled="n"
+     script="Inv.extras_start"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     name="trigger_inv_extras_card"
+     match="^(?:\(\s*(?<count>\d+)\))?(?:\s+\([a-zA-Z ()]+\)) (?<name>\w+) Fantasy Series Collector's Card(?: \(201\))?$"
+     enabled="n"
+     script="Inv.extras_card"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     name="trigger_inv_extras_end"
+     match="^\{/inv\}$"
+     enabled="n"
+     script="Inv.extras_end"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
 </triggers>
 
 <script>
@@ -153,7 +192,7 @@ end
 
 function Inv.clear_data()
     Inv.case = {}
-    Inv.dupes = {}
+    Inv.extras = {}
 end
 
 function Inv.identify(alias, line, wc)
@@ -188,6 +227,41 @@ end
 function Inv.case_end(trigger, line, wc)
     EnableTrigger("trigger_inv_case_start", false)
     EnableTriggerGroup("triggerg_inv_case", false)
+end
+
+function Inv.inventory(alias, line, wc)
+    Inv.clear_data()
+    local location = trim(wc.location)
+    EnableTrigger("trigger_inv_extras_start", true)
+    EnableTrigger("trigger_inv_extras_end", true)
+    TelnetOptionOff(TELOPT_PAGING) -- Temporarily disable paging if it is on
+    if (location == "") then
+        SendNoEcho("inventory")
+    else
+        SendNoEcho("look in " .. location)
+    end
+    SendNoEcho("echo {/inv}")
+    TelnetOptionOn(TELOPT_PAGING) -- Re-enable paging if it was on
+end
+
+function Inv.extras_start(trigger, line, wc)
+    EnableTrigger("trigger_inv_extras_start", false)
+    EnableTrigger("trigger_inv_extras_card", true)
+end
+
+function Inv.extras_card(trigger, line, wc)
+    local count = tonumber(wc.count) or 1
+    local name = wc.name
+    for i = 1, count do
+        table.insert(Inv.extras, name)
+    end
+end
+
+function Inv.extras_end(trigger, line, wc)
+    EnableTriggerGroup("triggerg_inv_extras", false)
+    if (#Inv.extras > 0) then
+        table.sort(Inv.extras)
+    end
 end
 ]]>
 </script>
