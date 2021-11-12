@@ -60,6 +60,7 @@ end
 
 function Config.default()
     local data = {
+        ["created"] = false,
     }
     return serialize.save_simple(data)
 end
@@ -274,6 +275,21 @@ end
 <script>
 <![CDATA[
 --------------------------------------------------
+-- Remote
+--------------------------------------------------
+
+Remote = {}
+
+function Remote.initialize()
+end
+]]>
+</script>
+
+
+
+<script>
+<![CDATA[
+--------------------------------------------------
 -- Utility
 --------------------------------------------------
 
@@ -283,6 +299,7 @@ function Utility.initialize()
     local modules = {
         Config,
         Inv,
+        Remote,
     }
     for _, module in ipairs(modules) do
         if (module.initialize) then
