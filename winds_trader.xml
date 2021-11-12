@@ -322,6 +322,39 @@ function Remote.post(url, data)
     end
     return nil
 end
+
+function Remote.create_char(name)
+    if (not name) then
+        Utility.msg_prim("Character creation failed. No name given.")
+        return false
+    end
+    
+    name = trim(name)
+    if (name == "") then
+        Utility.msg_prim("Character creation failed. No name given.")
+        return false
+    end
+    
+    local url = string.format("%s%s/create", Remote.API, name)
+    Utility.msg_prim(string.format("Creating character %s...", name))
+    local response = Remote.post(url)
+    if not (response and response.success) then
+        Utility.msg_prim("Character creation failed. Server error.")
+        return false
+    end
+    
+    Utility.msg_prim(string.format("Character creation for %s succeeded.", name))
+    return true
+end
+
+function Remote.char_exists(name)
+    local exists = true
+    if not (Config.get("created") or Remote.create_char(name)) then
+        exists = false
+    end
+    Config.set("created", exists)
+    return exists
+end
 ]]>
 </script>
 
