@@ -90,7 +90,7 @@ end
 
 <aliases>
     <alias
-     match="^winds\s+upload\s+case(?<keyword>.*)$"
+     match="^winds\s+(?<action>remove|upload)\s+case(?<keyword>.*)$"
      enabled="y"
      script="Inv.identify"
      regexp="y"
@@ -140,7 +140,7 @@ end
     <trigger
      name="trigger_inv_case_end"
      group="triggerg_inv_case"
-     match="^\{/id\}$"
+     match="^\{/(?<action>rm|up)case\}$"
      enabled="n"
      script="Inv.case_end"
      regexp="y"
@@ -200,9 +200,10 @@ function Inv.clear_data()
 end
 
 function Inv.identify(alias, line, wc)
+    local action = wc.action
     local keyword = trim(wc.keyword)
     if (keyword == "") then
-        Utility.msg_prim("Upload what case?")
+        Utility.msg_prim(string.format("%s what case?", Utility.pascal_case(action)))
         return
     end
     
@@ -212,7 +213,9 @@ function Inv.identify(alias, line, wc)
     SendNoEcho("identify " .. keyword)
     -- Rezit decided to add a blank line between stored list and identify output,
     -- so add an ending echo of our own...
-SendNoEcho("echo {/id}")
+    local shortAction = action:lower() == "upload" and "up" or "rm"
+    local endTag = string.format("echo {/%scase}", shortAction)
+SendNoEcho(endTag)
 end
 
 function Inv.case_start(trigger, line, wc)
@@ -221,16 +224,28 @@ function Inv.case_start(trigger, line, wc)
 end
 
 function Inv.case_keywords(trigger, line, wc)
+--[===[ This original code inserts simply the case keywords. API requires full
+        lines, but keeping this here in case it's ever useful.
     Inv.case.keywords = trim(wc.keywords)
+]===]
+    table.insert(Inv.case, line)
 end
 
 function Inv.case_id(trigger, line, wc)
+--[===[ Ditto
     Inv.case.id = trim(wc.id)
+]===]
+    table.insert(Inv.case, line)
 end
 
 function Inv.case_end(trigger, line, wc)
     EnableTrigger("trigger_inv_case_start", false)
     EnableTriggerGroup("triggerg_inv_case", false)
+    if (wc.action == "up") then
+        Remote.upload_case()
+    elseif (wc.action == "rm") then
+        Remote.remove_case()
+    end
 end
 
 function Inv.inventory(alias, line, wc)
@@ -372,7 +387,7 @@ function Remote.upload_cards()
     
     if (#Inv.cards == 0) then
         Utility.msg_prim("No extra cards found.")
-        return
+        return false
     end
     
     if (not Remote.char_exists(name)) then
@@ -396,6 +411,80 @@ function Remote.upload_cards()
     end
     
     Utility.msg_prim(msg)
+    return true
+end
+
+function Remote.upload_case()
+    local name = GMCP.char_name()
+    if (not name or name == "") then
+        Utility.msg_prim("Unable to upload case. GMCP data not available.")
+        return false
+    end
+    
+    -- Two lines required. First must show the item to be a Winds case.
+    local keywordMatch = "case collector[1-4] %d+ %d+ NO_RESTRING"
+    if (#Inv.case < 2 or not Inv.case[1]:match(keywordMatch)) then
+        Utility.msg_prim("No Winds case found.")
+        return false
+    end
+    
+    if (not Remote.char_exists(name)) then
+        Utility.msg_prim("Unable to upload case.")
+        return false
+    end
+    
+    local url = string.format("%s%s/upcase", Remote.API, name)
+    local data = string.format("cases=%s", table.concat(Inv.case, "\n")) 
+    local response = Remote.post(url, data)
+    if not (response and response.success) then
+        Utility.msg_prim("Failed to upload case.")
+        return false
+    end
+    
+    -- Success can return `0 cases uploaded` if the case already exists. Change
+    -- this message to something more user-friendly.
+    local msg = response.result
+    local quantity = tonumber(msg:match("^(%d+)"))
+    if (quantity == 0) then
+        msg = msg:gsub("0 cases", "1 case")
+    end
+    Utility.msg_prim(msg)
+    return true
+end
+
+function Remote.remove_case()
+    local name = GMCP.char_name()
+    if (not name or name == "") then
+        Utility.msg_prim("Unable to remove case. GMCP data not available.")
+        return false
+    end
+    
+    -- Two lines required. First must show the item to be a Winds case.
+    local keywordMatch = "case collector[1-4] %d+ %d+ NO_RESTRING"
+    if (#Inv.case < 2 or not Inv.case[1]:match(keywordMatch)) then
+        Utility.msg_prim("No Winds case found.")
+        return false
+    end
+    
+    if (not Remote.char_exists(name)) then
+        Utility.msg_prim("Unable to remove case.")
+        return false
+    end
+    
+    local id = Inv.case[2]:match("%d+")
+    local url = string.format("%s%s/rmcase/%s", Remote.API, name, id)
+    local response = Remote.post(url)
+    if not (response) then
+        Utility.msg_prim("Failed to remove case.")
+        return false
+    end
+    
+    if (response.errstr) then
+        Utility.msg_prim("No such case found.")
+        return false
+    end
+    
+    Utility.msg_prim(response.result)
     return true
 end
 ]]>
