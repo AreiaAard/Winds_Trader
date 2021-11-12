@@ -277,6 +277,7 @@ end
 local https = require "ssl.https"
 require "json"
 local ltn12 = require "ltn12"
+
 --------------------------------------------------
 -- Remote
 --------------------------------------------------
@@ -284,6 +285,42 @@ local ltn12 = require "ltn12"
 Remote = {}
 
 function Remote.initialize()
+    Remote.API = "https://winds.aarderik.nl/api.php/p/"
+end
+
+function Remote.get(url)
+    local response = {}
+    local ret, code, headers, status = https.request{
+        ["url"] = url,
+        ["method"] = "GET",
+        ["headers"] = {
+            ["Content-Type"] = "application/x-www-form-urlencoded",
+        },
+        ["sink"] = ltn12.sink.table(response)
+    }
+    if (response[1]) then -- Got response
+        return json.decode(response[1])
+    end
+    return nil
+end
+
+function Remote.post(url, data)
+    data = data or ""
+    local response = {}
+    local ret, code, headers, status = https.request{
+        ["url"] = url,
+        ["method"] = "POST",
+        ["headers"] = {
+            ["Content-Type"] = "application/x-www-form-urlencoded",
+            ["Content-Length"] = #data,
+        },
+        ["source"] = ltn12.source.string(data),
+        ["sink"] = ltn12.sink.table(response)
+    }
+    if (response[1]) then -- Got response
+        return json.decode(response[1])
+    end
+    return nil
 end
 ]]>
 </script>
