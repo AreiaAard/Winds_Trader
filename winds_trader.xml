@@ -89,13 +89,14 @@ end
 
 
 <aliases>
+    <!-- sequence 101 to evaluate after card upload alias -->
     <alias
-     match="^winds\s+(?<action>remove|upload)\s+case(?<keyword>.*)$"
+     match="^winds\s+(?<action>remove|upload)(?<keyword>.*)$"
      enabled="y"
      script="Inv.identify"
      regexp="y"
      ignore_case="y"
-     sequence="100"
+     sequence="101"
     >
     </alias>
     <alias
