@@ -274,6 +274,9 @@ end
 
 <script>
 <![CDATA[
+local https = require "ssl.https"
+require "json"
+local ltn12 = require "ltn12"
 --------------------------------------------------
 -- Remote
 --------------------------------------------------
@@ -281,6 +284,22 @@ end
 Remote = {}
 
 function Remote.initialize()
+end
+]]>
+</script>
+
+
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- GMCP
+--------------------------------------------------
+
+GMCP = {}
+
+function GMCP.char_name()
+    return gmcp("char.base.name")
 end
 ]]>
 </script>
