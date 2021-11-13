@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="0.03"
+   version="0.04"
    >
 <description trim="y">
 <![CDATA[
@@ -819,6 +819,7 @@ end
 
 function OnPluginInstall()
     Utility.initialize()
+    Utility.msg_prim("Plugin installed. Submit @Ywinds help @wfor usage.")
 end
 
 function OnPluginEnable()
