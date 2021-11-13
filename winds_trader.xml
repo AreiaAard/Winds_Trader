@@ -11,7 +11,7 @@
    save_state="n"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="0.0"
+   version="0.01"
    >
 <description trim="y">
 <![CDATA[
@@ -349,6 +349,15 @@ end
      sequence="100"
     >
     </alias>
+    <alias
+     match="^winds\s+update$"
+     enabled="y"
+     script="Remote.update_plugin"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
 </aliases>
 
 <script>
@@ -663,6 +672,37 @@ function Remote.display_trades(alias, line, wc)
     
     return true
 end
+
+function Remote.update_plugin(alias, line, wc)
+    local url = "https://raw.githubusercontent.com/AreiaAard/Winds_Trader/main/winds_trader.xml"
+    local xml = https.request(url)
+    if (not xml) then
+        Utility.msg_prim("Failed to download remote plugin file.")
+        return false
+    end
+    
+    local pluginID = GetPluginID()
+    local localVersion = GetPluginInfo(pluginID, 19) or 0
+    local localVersionStr = string.format("%1.2f", localVersion)
+    local remoteVersionStr = xml:match('%s%s+version="([0-9%.]+)"')
+    local remoteVersion = tonumber(remoteVersionStr or "") or 0
+    
+    if (localVersion == remoteVersion) then
+        Utility.msg_prim("Version is up to date.")
+        return true
+    end
+    
+    Utility.msg_prim(string.format("Updating from v%s to v%s...",
+        localVersionStr, RemoteVersionStr
+    ))
+    Utility.msg_sec("Please do not touch anything.")
+    local fileName = GetPluginInfo(pluginID, 6)
+    local file = assert(io.open(fileName, "w"))
+    file:write(xml)
+    file:close()
+    Utility.reload_plugin()
+    return true
+end
 ]]>
 </script>
 
@@ -754,6 +794,17 @@ function Utility.remove_duplicates(t)
         end
     end
     return new
+end
+
+function Utility.reload_plugin()
+    if (GetAlphaOption("script_prefix") == "") then
+        SetAlphaOption("script_prefix", "\\\\\\")
+    end
+    local scriptPrefix = GetAlphaOption("script_prefix")
+    local pluginID = GetPluginID()
+    local cmd = "%sDoAfterSpecial(1, \"ReloadPlugin('%s')\", sendto.script)"
+    Utility.msg_prim("Reloading...")
+    Execute(cmd:format(scriptPrefix, pluginID))
 end
 ]]>
 </script>
