@@ -108,6 +108,15 @@ end
      sequence="100"
     >
     </alias>
+    <alias
+     match="^winds\s+remove\s+card(?<card>.*)$"
+     enabled="y"
+     script="Inv.remove_card"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
 </aliases>
 
 <triggers>
@@ -288,6 +297,16 @@ function Inv.cards_end(trigger, line, wc)
     end
     Remote.upload_cards()
 end
+
+function Inv.remove_card(trigger, line, wc)
+    local card = trim(wc.card)
+    if (card == "") then
+        Utility.msg_prim("Remove which card?")
+        return
+    end
+    
+    Remote.remove_card(card)
+end
 ]]>
 </script>
 
@@ -412,6 +431,35 @@ function Remote.upload_cards()
     end
     
     Utility.msg_prim(msg)
+    return true
+end
+
+function Remote.remove_card(card)
+    local name = GMCP.char_name()
+    if (not name or name == "") then
+        Utility.msg_prim("Unable to remove cards. GMCP data not available.")
+        return false
+    end
+    
+    if (not Remote.char_exists(name)) then
+        Utility.msg_prim("Unable to remove cards.")
+        return false
+    end
+    
+    local url = string.format("%s%s/rmcard/%s", Remote.API, name, card)
+    local response = Remote.post(url)
+    if not (response) then
+        Utility.msg_prim("Failed to remove card.")
+        return false
+    end
+    
+    if (response.errstr) then
+        local msg = response.errstr:gsub("rmcard: ", "")
+        Utility.msg_prim(msg)
+        return false
+    end
+    
+    Utility.msg_prim(response.result)
     return true
 end
 
