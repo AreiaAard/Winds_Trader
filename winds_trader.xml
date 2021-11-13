@@ -339,7 +339,7 @@ function Remote.get(url)
         ["sink"] = ltn12.sink.table(response)
     }
     if (response[1]) then -- Got response
-        return json.decode(response[1])
+        return json.decode(table.concat(response, ""))
     end
     return nil
 end
@@ -358,7 +358,7 @@ function Remote.post(url, data)
         ["sink"] = ltn12.sink.table(response)
     }
     if (response[1]) then -- Got response
-        return json.decode(response[1])
+        return json.decode(table.concat(response, ""))
     end
     return nil
 end
