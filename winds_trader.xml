@@ -61,6 +61,7 @@ end
 function Config.default()
     local data = {
         ["created"] = false,
+        ["daysAgo"] = 0,
     }
     return serialize.save_simple(data)
 end
@@ -311,6 +312,18 @@ end
 </script>
 
 
+<aliases>
+    <alias
+     match="^winds\s+trades\s+(?<cases>\d+)(?<with>\s+\w+)?$"
+     enabled="y"
+     script="Remote.display_trades"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+</aliases>
+
 
 <script>
 <![CDATA[
@@ -536,6 +549,83 @@ function Remote.remove_case()
     Utility.msg_prim(response.result)
     return true
 end
+
+function Remote.display_trades(alias, line, wc)
+    local name = GMCP.char_name()
+    if (not name or name == "") then
+        Utility.msg_prim("Unable to retrieve trades. GMCP data not available.")
+        return false
+    end
+    
+    if (not Remote.char_exists(name)) then
+        Utility.msg_prim("Unable to retrieve trades.")
+        return false
+    end
+    
+    local cases = wc.cases
+    local url = string.format("%s%s/trades/%s", Remote.API, name, cases)
+    local with = trim(wc.with)
+    if (with ~= "") then
+        url = string.format("%s?with=%s", url, with)
+    else
+        local daysAgo = Config.get("daysAgo")
+        if (daysAgo > 0) then
+            url = string.format("%s?days_ago=%d", url, daysAgo)
+        end
+    end
+    
+    local response = Remote.get(url)
+    if (not response) then
+        Utility.msg_prim("Failed to retrieve trades.")
+        return false
+    end
+    
+    if (response.errstr) then
+        local msg = response.errstr:gsub("trades: ", "")
+        Utility.msg_prim(msg)
+        return false
+    end
+    
+    local cases = response.cases
+    table.sort(cases)
+    local caseDisplayed = false
+    for caseNum, caseInfo in pairs(cases) do
+        caseDisplayed = true
+        local header = string.format("@WTrades for case%d (@Y%s@W)", caseNum, caseInfo.name)
+        local headerIndent = math.floor((80 - #strip_colours(header)) / 2)
+        Utility.print(string.format("%s%s", string.rep(" ", headerIndent), header))
+        
+        -- Collect player names so we can display them alphabetically
+        local players = {}
+        for player, trades in pairs(caseInfo.trades) do
+            table.insert(players, player)
+        end
+        table.sort(players)
+        
+        -- Now run through each player and display their trades (if any)
+        for _, player in ipairs(players) do
+            local updated = caseInfo.trades[player].updated or "N/A"
+            local give = Utility.remove_duplicates(caseInfo.trades[player].give)
+            local recv = Utility.remove_duplicates(caseInfo.trades[player].recv)
+            -- Display only players who can either give or receive cards
+            if (#give > 0 or #recv > 0) then
+                Utility.print(string.format("@W%s @w(%s):", player, updated))
+                if (#give > 0) then
+                    Utility.print(string.format("   @YNeeds@w: %s", table.concat(give, ", ")))
+                end -- can give
+                if (#recv > 0) then
+                    Utility.print(string.format("   @YHas  @w: %s", table.concat(recv, ", ")))
+                end -- can receive
+            end -- can either give or receive
+        end -- for each player
+    end -- for each case
+    
+    if (not caseDisplayed) then
+        Utility.msg_prim("NO trades available.")
+    end
+    
+    return true
+end
 ]]>
 </script>
 
@@ -615,6 +705,18 @@ end
 
 function Utility.ends_with(s, t)
     return Utility.starts_with(s:reverse(), t:reverse())
+end
+
+function Utility.remove_duplicates(t)
+    local found = {}
+    local new = {}
+    for k, v in ipairs(t) do
+        if (not found[v]) then
+        found[v] = true
+        table.insert(new, v)
+        end
+    end
+    return new
 end
 ]]>
 </script>
