@@ -490,6 +490,7 @@ function Remote.upload_cards()
     end
     
     Utility.msg_prim(msg)
+    Remote.offer_trades()
     return true
 end
 
@@ -519,6 +520,7 @@ function Remote.remove_card(card)
     end
     
     Utility.msg_prim(response.result)
+    Remote.offer_trades()
     return true
 end
 
@@ -557,6 +559,7 @@ function Remote.upload_case()
         msg = msg:gsub("0 cases", "1 case")
     end
     Utility.msg_prim(msg)
+    Remote.offer_trades()
     return true
 end
 
@@ -593,6 +596,7 @@ function Remote.remove_case()
     end
     
     Utility.msg_prim(response.result)
+    Remote.offer_trades()
     return true
 end
 
@@ -701,6 +705,40 @@ function Remote.update_plugin(alias, line, wc)
     file:write(xml)
     file:close()
     Utility.reload_plugin()
+    return true
+end
+
+function Remote.offer_trades()
+    local name = GMCP.char_name()
+    if (not name or name == "") then
+        return false
+    end
+    
+    local action = "https://winds.aarderik.nl/index.php?player=" .. name
+    local text = "here"
+    local hint = "Open " .. action
+    local fgPlain = "silver"
+    local fgHighlight = "yellow"
+    local bg = "black"
+    local url = true
+    local noUnderline = false
+    local indent = string.rep(" ", 16)
+    Tell(indent)
+     ColourTell(fgPlain, bg, "Click ")
+    Hyperlink(action, text, hint, fgHighlight, bg, url, noUnderline)
+    ColourTell("silver", "black", " to view your trades on the trading site.")
+    Note("")
+    
+    action = "winds trades 1234"
+    text = "winds trades <cases>"
+    hint = "View trades here"
+    url = false
+    Tell(indent)
+    ColourTell(fgPlain, bg, "Or submit ")
+    Hyperlink(action, text, hint, fgHighlight, bg, url, noUnderline)
+    ColourTell(fgPlain, bg, " to view trades here.")
+    Note("")
+    
     return true
 end
 ]]>
