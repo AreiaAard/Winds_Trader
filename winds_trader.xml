@@ -25,14 +25,16 @@
 
 
 <aliases>
+    <alias
+     match="^winds\s+config\s+limittrades\s+(?<daysAgo>[0-9-]+)$"
+     enabled="y"
+     script="Config.set_daysago"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
 </aliases>
-
-
-
-<triggers>
-</triggers>
-
-
 
 <script>
 <![CDATA[
@@ -83,6 +85,22 @@ end
 function Config.set(key, val)
     Config.data[key] = val
     Config.save()
+end
+
+function Config.set_daysago(alias, line, wc)
+    local daysAgo = tonumber(wc.daysAgo)
+    daysAgo = daysAgo < 1 and 0 or daysAgo
+    Config.set("daysAgo", daysAgo)
+    if (daysAgo == 0) then
+        Utility.msg_prim("Trade search not limited by player activity.")
+    elseif (daysAgo == 1) then
+        Utility.msg_prim("Trade search limited to players active in the last day.")
+    else
+        Utility.print(string.format(
+            "Trade search limited to players active in the last %d days.",
+            daysAgo
+        ))
+    end
 end
 ]]>
 </script>
