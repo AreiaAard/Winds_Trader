@@ -8,10 +8,10 @@
    id="cfb5131348f00eca0684adce"
    language="Lua"
    purpose="Trade Winds cards"
-   save_state="n"
+   save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="0.01"
+   version="0.02"
    >
 <description trim="y">
 <![CDATA[
