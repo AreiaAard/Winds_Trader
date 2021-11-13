@@ -332,6 +332,15 @@ end
 
 <aliases>
     <alias
+     match="^winds\s+forcecreate$"
+     enabled="y"
+     script="Remote.force_create"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+    <alias
      match="^winds\s+trades\s+(?<cases>\d+)(?<with>\s+\w+)?$"
      enabled="y"
      script="Remote.display_trades"
@@ -341,7 +350,6 @@ end
     >
     </alias>
 </aliases>
-
 
 <script>
 <![CDATA[
@@ -395,15 +403,18 @@ function Remote.post(url, data)
 end
 
 function Remote.create_char(name)
+    local success = false
     if (not name) then
         Utility.msg_prim("Character creation failed. No name given.")
-        return false
+        Config.set("created", success)
+        return success
     end
     
     name = trim(name)
     if (name == "") then
         Utility.msg_prim("Character creation failed. No name given.")
-        return false
+        Config.set("created", success)
+        return success
     end
     
     local url = string.format("%s%s/create", Remote.API, name)
@@ -411,11 +422,14 @@ function Remote.create_char(name)
     local response = Remote.post(url)
     if not (response and response.success) then
         Utility.msg_prim("Character creation failed. Server error.")
-        return false
+        Config.set("created", success)
+        return success
     end
     
+    success = true
+    Config.set("created", success)
     Utility.msg_prim(string.format("Character creation for %s succeeded.", name))
-    return true
+    return success
 end
 
 function Remote.char_exists(name)
@@ -425,8 +439,13 @@ function Remote.char_exists(name)
     if not (Config.get("created") or Remote.create_char(name)) then
         exists = false
     end
-    Config.set("created", exists)
     return exists
+end
+
+function Remote.force_create(alias, line, wc)
+    local name = GMCP.char_name()
+    Config.set("created", false)
+    Remote.create_char(name)
 end
 
 function Remote.upload_cards()
