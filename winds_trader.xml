@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="0.05"
+   version="0.06"
    >
 <description trim="y">
 <![CDATA[
@@ -659,7 +659,12 @@ function Remote.display_trades(alias, line, wc)
         
         -- Now run through each player and display their trades (if any)
         for _, player in ipairs(players) do
-            local updated = caseInfo.trades[player].updated or "N/A"
+            -- Look for updated first in player table (not always sent). Otherwise,
+            -- look for it in top-level other_player table (sent when requesting
+            -- another player). If both fail, default to 'N/A'
+            local updated = caseInfo.trades[player].updated
+                or (response.other_player and response.other_player.updated)
+                or "N/A"
             local give = Utility.remove_duplicates(caseInfo.trades[player].give)
             local recv = Utility.remove_duplicates(caseInfo.trades[player].recv)
             -- Display only players who can either give or receive cards
