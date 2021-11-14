@@ -612,8 +612,8 @@ function Remote.display_trades(alias, line, wc)
         return false
     end
     
-    local cases = wc.cases
-    local url = string.format("%s%s/trades/%s", Remote.API, name, cases)
+    local caseNums = wc.cases
+    local url = string.format("%s%s/trades/%s", Remote.API, name, caseNums)
     local with = trim(wc.with)
     if (with ~= "") then
         url = string.format("%s?with=%s", url, with)
@@ -636,8 +636,13 @@ function Remote.display_trades(alias, line, wc)
         return false
     end
     
-    local cases = response.cases
-    table.sort(cases)
+    -- Build our own table of cases, since response.cases has string keys and
+    -- can't be sorted
+    local cases = {}
+    for caseNum, caseInfo in pairs(response.cases) do
+        cases[tonumber(caseNum)] = caseInfo
+    end
+    
     local caseDisplayed = false
     for caseNum, caseInfo in pairs(cases) do
         caseDisplayed = true
