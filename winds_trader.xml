@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="0.04"
+   version="0.05"
    >
 <description trim="y">
 <![CDATA[
@@ -762,6 +762,184 @@ end
 
 
 
+<aliases>
+    <alias
+     match="^winds\s+tradehelp$"
+     enabled="y"
+     script="Help.topics"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+    <alias
+     match="^winds\s+tradehelp\s+(?<topic>\w+)$"
+     enabled="y"
+     script="Help.show_topic"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+</aliases>
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- Help
+--------------------------------------------------
+
+Help = {}
+
+function Help.topics()
+    local topics = {
+        {name="config", desc="Configuring the plugin"},
+        {name="upload", desc="Uploading cases and cards"},
+        {name="remove", desc="Removing cases and cards"},
+        {name="trades", desc="Displaying trades"},
+        {name="misc", desc="Misc commands"},
+    }
+    
+    local fgPlain = "silver"
+    local fgHighlight = "yellow"
+    local bg = "black"
+    Utility.print("              @WWinds Trader Help -- Help Topics              ")
+    Utility.print(string.rep("=", 60))
+    for _, topic in ipairs(topics) do
+        local action = "winds tradehelp " .. topic.name
+        local text = "winds tradehelp " .. topic.name
+        local hint = string.format("Show %s help", topic.name)
+        Tell("  ")
+        Hyperlink(action, text, hint, fgHighlight, bg, false)
+        ColourTell(fgPlain, bg, ": ", fgPlain, bg, topic.desc)
+        Note("")
+    end
+    Utility.print("Type or click on one of the above to show help.")
+end
+
+function Help.show_topic(alias, line, wc)
+    local topics = {
+        ["config"] = Help.config, ["upload"] = Help.upload,
+        ["remove"] = Help.remove, ["trades"] = Help.trades,
+        ["misc"] = Help.misc,
+    }
+    local function no_topic()
+        Utility.msg_prim("No help topic with that name.")
+        Help.topics()
+    end
+    
+    local topic = string.lower(wc.topic)
+    local func = topics[topic] or no_topic
+    func()
+end
+
+function Help.config()
+    Utility.print("                @WWinds Trader Help -- Config@w                ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+    Syntax: @Ywinds config <config> <value>@w
+This command sets configuration options for the plugin.
+Available configs:
+  limittrades: Limit display of trades to players active
+    within the given number of days.
+    Example: @Ywinds config limittrades 30 @w--> Show only
+      players active within the last month.
+    Example: @Ywinds config limittrades 0 @w--> Show trades
+      with all players, regardless of activity.
+]]
+    Utility.print(text)
+end
+
+function Help.upload()
+    Utility.print("                @WWinds Trader Help -- Upload@w                ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+    Syntax: @Ywinds upload <case>@w
+    Syntax: @Ywinds upload cards [location]@w
+These commands allow you to upload your cases and cards to
+the winds trading site.
+To upload a case, have it in your inventory, and simply
+type @Ywinds upload case@w. If you have more than one, you can
+submit @Ywinds upload 2.case @wand so on.
+To upload duplicate cards in your inventory, submit
+@Ywinds upload cards@w. If your dupes are in a bag, simply type
+@Ywinds upload cards <location> @w(e.g., 'backpack,' '2.bag,' or
+container's id).
+Uploading extra cards will completely replace the list of
+duplicates saved on the site, so wherever you keep your
+extras, be sure to keep them all in one place.
+The plugin offers to show you trades after every upload
+operation. You can click the links it provides for quick
+access to your trades.
+]]
+    Utility.print(text)
+end
+
+function Help.remove()
+    Utility.print("                @WWinds Trader Help -- Remove@w                ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+    Syntax: @Ywinds remove <case>@w
+    Syntax: @Ywinds remove card <card name>@w
+If you complete a case, or trade away a duplicate, you will
+want to remove it from your profile. these commands do just
+that.
+Case removal works similarly to case uploading. Ensure that
+the case is in your inventory, and type, for example,
+@Ywinds remove collector4@w.
+Duplicate removal is currently done one-by-one. To remove
+a Lasher card, you would type @Ywinds remove card lasher@w
+(names are case-insensitive).
+The plugin offers to show you trades after every remove
+operation. You can click the links it provides for quick
+access to your trades.
+]]
+    Utility.print(text)
+end
+
+function Help.trades()
+    Utility.print("                @WWinds Trader Help -- Trades@w                ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+    Syntax: @Ywinds trades <case number(s)> [player]@w
+This command allows you to view your trades without having
+to look on the trading site (although it's probably vis-
+ually easier to do so).
+Case numbers are 1 through 4 and refer to the cases for
+which you wish to search trades. Typing @Ywinds trades 3@w
+will display trades you can make with your case3 cards. It
+is possible to view multiple cases at once. For example,
+@Ywinds trades 14 @wshows trades for cases 1 and 4, and to see
+all possible trades, you can submit @Ywinds trades 1234@w.
+Adding a player's name at the end of the command will limit
+your search to trades with only that particular player.
+This can be useful if you develop a regular trading part-
+ner, or simply to cut down on spam.
+]]
+    Utility.print(text)
+end
+
+function Help.misc()
+    Utility.print("                 @WWinds Trader Help -- Misc@w                 ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+Below are some various minor plugin commands which should
+not necessarily be needed often.
+  @Ywinds forcecreate@w: Forces the plugin to attempt to create
+    a profile with your name. The plugin does this for you
+    automatically, but in the case things get confused and
+    the trading site forgets that you exist, you can try
+    this.
+  @Ywinds update@w: Checks for an updated version of the plugin
+    and installs it if found.
+]]
+    Utility.print(text)
+end
+]]>
+</script>
+
+
+
 <script>
 <![CDATA[
 --------------------------------------------------
@@ -857,7 +1035,7 @@ end
 
 function OnPluginInstall()
     Utility.initialize()
-    Utility.msg_prim("Plugin installed. Submit @Ywinds help @wfor usage.")
+    Utility.msg_prim("Plugin installed. Submit @Ywinds tradehelp @wfor help topics.")
 end
 
 function OnPluginEnable()
