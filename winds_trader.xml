@@ -15,6 +15,12 @@
    >
 <description trim="y">
 <![CDATA[
+Abbreviated Help:
+
+Type 'winds tradehelp' for main help topics.
+Type 'winds upload case' to upload a case in your inventory.
+Type 'winds upload cards' to upload dupes in your inventory.
+Type 'winds trades 1234' to view all possible trades.
 ]]>
 </description>
 
