@@ -118,24 +118,6 @@ end
      sequence="101"
     >
     </alias>
-    <alias
-     match="^winds\s+upload\s+cards(?<location>.*)$"
-     enabled="y"
-     script="Inv.inventory"
-     regexp="y"
-     ignore_case="y"
-     sequence="100"
-    >
-    </alias>
-    <alias
-     match="^winds\s+remove\s+card(?<card>.*)$"
-     enabled="y"
-     script="Inv.remove_card"
-     regexp="y"
-     ignore_case="y"
-     sequence="100"
-    >
-    </alias>
 </aliases>
 
 <triggers>
@@ -172,28 +154,6 @@ end
      match="^\{/(?<action>rm|up)case\}$"
      enabled="n"
      script="Inv.case_end"
-     regexp="y"
-     omit_from_output="y"
-     sequence="100"
-    >
-    </trigger>
-    
-    <trigger
-     name="trigger_inv_cards_card"
-     group="triggerg_inv_cards"
-     match="^(?:\(\s*(?<count>\d+)\))?(?:\s+\([a-zA-Z ()]+\)) (?<name>\w+) Fantasy Series Collector's Card(?: \(201\))?$"
-     enabled="n"
-     script="Inv.cards_card"
-     regexp="y"
-     sequence="100"
-    >
-    </trigger>
-    <trigger
-     name="trigger_inv_cards_end"
-     group="triggerg_inv_cards"
-     match="^\{/inv\}$"
-     enabled="n"
-     script="Inv.cards_end"
      regexp="y"
      omit_from_output="y"
      sequence="100"
@@ -266,9 +226,64 @@ function Inv.case_end(trigger, line, wc)
         Remote.remove_case()
     end
 end
+]]>
+</script>
 
-function Inv.inventory(alias, line, wc)
-    Inv.clear_data()
+
+
+<aliases>
+    <alias
+     match="^winds\s+upload\s+cards(?<location>.*)$"
+     enabled="y"
+     script="CardHandler.search"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+    <alias
+     match="^winds\s+remove\s+card(?<card>.*)$"
+     enabled="y"
+     script="CardHandler.remove"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+</aliases>
+
+<triggers>
+    <trigger
+     group="triggerg_card_search"
+     match="^(?:\(\s*(?<count>\d+)\))?(?:\s+\([a-zA-Z ()]+\)) (?<name>\w+) Fantasy Series Collector's Card(?: \(201\))?$"
+     enabled="n"
+     script="CardHandler.found"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="triggerg_card_search"
+     match="^\{/cards\}$"
+     enabled="n"
+     script="CardHandler.search_done"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+</triggers>
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- Card Handler
+--------------------------------------------------
+
+CardHandler = {}
+
+function CardHandler.search(alias, line, wc)
+    CardHandler.cards = {}
     
     -- Build up a list of unique keywords to search. If no keywords
     -- at all are given, then search at least the main inventory.
@@ -280,8 +295,7 @@ function Inv.inventory(alias, line, wc)
         locations.inv = true
     end
     
-    EnableTrigger("trigger_inv_cards_card", true)
-    EnableTrigger("trigger_inv_cards_end", true)
+    EnableTriggerGroup("triggerg_card_search", true)
     TelnetOptionOff(TELOPT_PAGING) -- Temporarily disable paging if it is on
     
     -- Examine the contents of each item in the list. First search
@@ -300,31 +314,20 @@ function Inv.inventory(alias, line, wc)
         SendNoEcho(string.format("look in %s", container))
     end
     
-    SendNoEcho("echo {/inv}")
+    SendNoEcho("echo {/cards}")
     TelnetOptionOn(TELOPT_PAGING) -- Re-enable paging if it was on
 end
 
-function Inv.cards_card(trigger, line, wc)
---[===[ This original code inserts simply the card names. API requires full
-        lines, but keeping this here in case it's ever useful.
-    local count = tonumber(wc.count) or 1
-    local name = wc.name
-    for i = 1, count do
-        table.insert(Inv.cards, name)
-    end
-]===]
-    table.insert(Inv.cards, line)
+function CardHandler.found(trigger, line, wc)
+    table.insert(CardHandler.cards, line)
 end
 
-function Inv.cards_end(trigger, line, wc)
-    EnableTriggerGroup("triggerg_inv_cards", false)
-    if (#Inv.cards > 0) then
-        table.sort(Inv.cards)
-    end
-    Remote.upload_cards()
+function CardHandler.search_done(trigger, line, wc)
+    EnableTriggerGroup("triggerg_card_search", false)
+    Remote.upload_cards(CardHandler.cards)
 end
 
-function Inv.remove_card(trigger, line, wc)
+function CardHandler.remove(trigger, line, wc)
     local card = trim(wc.card)
     if (card == "") then
         Utility.msg_prim("Remove which card?")
@@ -335,6 +338,7 @@ function Inv.remove_card(trigger, line, wc)
 end
 ]]>
 </script>
+
 
 
 <aliases>
@@ -464,17 +468,18 @@ function Remote.force_create(alias, line, wc)
     Remote.create_char(name)
 end
 
-function Remote.upload_cards()
+function Remote.upload_cards(cards)
     local name = GMCP.char_name()
     if (not name or name == "") then
         Utility.msg_prim("Unable to upload cards. GMCP data not available.")
         return false
     end
     
-    if (#Inv.cards == 0) then
+    if (#cards == 0) then
         Utility.msg_prim("No extra cards found.")
         return false
     end
+    table.sort(cards)
     
     if (not Remote.char_exists(name)) then
         Utility.msg_prim("Unable to upload cards.")
@@ -482,7 +487,7 @@ function Remote.upload_cards()
     end
     
     local url = string.format("%s%s/upcard", Remote.API, name)
-    local data = string.format("cards=%s", table.concat(Inv.cards, "\n")) 
+    local data = string.format("cards=%s", table.concat(cards, "\n")) 
     local response = Remote.post(url, data)
     if not (response and response.success) then
         Utility.msg_prim("Failed to upload extra cards.")
