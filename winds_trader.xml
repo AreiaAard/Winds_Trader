@@ -179,16 +179,6 @@ end
     </trigger>
     
     <trigger
-     name="trigger_inv_cards_start"
-     group="triggerg_inv_cards"
-     match="^(?:You are carrying|The .+ contains):$"
-     enabled="n"
-     script="Inv.cards_start"
-     regexp="y"
-     sequence="100"
-    >
-    </trigger>
-    <trigger
      name="trigger_inv_cards_card"
      group="triggerg_inv_cards"
      match="^(?:\(\s*(?<count>\d+)\))?(?:\s+\([a-zA-Z ()]+\)) (?<name>\w+) Fantasy Series Collector's Card(?: \(201\))?$"
@@ -279,22 +269,39 @@ end
 
 function Inv.inventory(alias, line, wc)
     Inv.clear_data()
-    local location = trim(wc.location)
-    EnableTrigger("trigger_inv_cards_start", true)
+    
+    -- Build up a list of unique keywords to search. If no keywords
+    -- at all are given, then search at least the main inventory.
+    local locations = {}
+    for arg in trim(wc.location):gmatch("%S+") do
+        locations[arg:lower()] = true
+    end
+    if (not next(locations)) then
+        locations.inv = true
+    end
+    
+    EnableTrigger("trigger_inv_cards_card", true)
     EnableTrigger("trigger_inv_cards_end", true)
     TelnetOptionOff(TELOPT_PAGING) -- Temporarily disable paging if it is on
-    if (location == "") then
+    
+    -- Examine the contents of each item in the list. First search
+    -- for special locations like vault and remove them so as not to
+    -- examine them twice. Then 'look in' the remaining elements.
+    if (locations.inv or locations.inventory) then
         SendNoEcho("inventory")
-    else
-        SendNoEcho("look in " .. location)
+        locations.inv = nil
+        locations.inventory = nil
     end
+    if (locations.vault) then
+        SendNoEcho("vault list")
+        locations.vault = nil
+    end
+    for container in pairs(locations) do
+        SendNoEcho(string.format("look in %s", container))
+    end
+    
     SendNoEcho("echo {/inv}")
     TelnetOptionOn(TELOPT_PAGING) -- Re-enable paging if it was on
-end
-
-function Inv.cards_start(trigger, line, wc)
-    EnableTrigger("trigger_inv_cards_start", false)
-    EnableTrigger("trigger_inv_cards_card", true)
 end
 
 function Inv.cards_card(trigger, line, wc)
