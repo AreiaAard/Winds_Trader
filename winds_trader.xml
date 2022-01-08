@@ -861,17 +861,17 @@ function Help.upload()
     Utility.print("                @WWinds Trader Help -- Upload@w                ")
     Utility.print(string.rep("=", 60))
     local text = [[
-    Syntax: @Ywinds upload <case>@w
+    Syntax: @Ywinds upload <case(s)>@w
     Syntax: @Ywinds upload cards [location(s)]@w
 These commands allow you to upload your cases and cards to
 the winds trading site.
 To upload a case, have it in your inventory, and simply
 type @Ywinds upload case@w. If you have more than one, you can
-submit @Ywinds upload 2.case @wand so on.
+seperate each with whitespace. For example, to upload three
+different cases, submit @Ywinds upload case 2.case 3.case@w.
 To upload duplicate cards in your inventory, submit
-@Ywinds upload cards@w. If your dupes are in a bag, simply type
-@Ywinds upload cards <location> @w(e.g., 'backpack,' '2.bag,' or
-container's id).
+@Ywinds upload cards@w. If your dupes are in a bag, simply add
+the bag's name or id. e.g., @Ywinds upload cards 2.bag@w.
 You may upload cards from multiple locations by separating
 each with whitespace. For example, to upload all cards
 found in 1.bag and 2.bag: @Ywinds upload cards 1.bag 2.bag@w.
