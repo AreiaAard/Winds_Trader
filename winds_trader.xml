@@ -114,130 +114,6 @@ end
 
 
 <aliases>
-    <!-- sequence 101 to evaluate after card upload alias -->
-    <alias
-     match="^winds\s+(?<action>remove|upload)(?<keyword>.*)$"
-     enabled="y"
-     script="Inv.identify"
-     regexp="y"
-     ignore_case="y"
-     sequence="101"
-    >
-    </alias>
-</aliases>
-
-<triggers>
-    <trigger
-     name="trigger_inv_case_start"
-     match="^You have (?:the following|no) cards stored[:.]$"
-     enabled="n"
-     script="Inv.case_start"
-     regexp="y"
-     sequence="100"
-    >
-    </trigger>
-    <trigger
-     group="triggerg_inv_case"
-     match="^\|\s+Keywords\s+:(?<keywords>.+)\|$"
-     enabled="n"
-     script="Inv.case_keywords"
-     regexp="y"
-     sequence="100"
-    >
-    </trigger>
-    <trigger
-     group="triggerg_inv_case"
-     match="^\|\s+Id\s+:(?<id>.+)\|$"
-     enabled="n"
-     script="Inv.case_id"
-     regexp="y"
-     sequence="100"
-    >
-    </trigger>
-    <trigger
-     name="trigger_inv_case_end"
-     group="triggerg_inv_case"
-     match="^\{/(?<action>rm|up)case\}$"
-     enabled="n"
-     script="Inv.case_end"
-     regexp="y"
-     omit_from_output="y"
-     sequence="100"
-    >
-    </trigger>
-</triggers>
-
-<script>
-<![CDATA[
---------------------------------------------------
--- Inv
---------------------------------------------------
-
-Inv = {}
-
-function Inv.initialize()
-    Inv.clear_data()
-end
-
-function Inv.clear_data()
-    Inv.case = {}
-    Inv.cards = {}
-end
-
-function Inv.identify(alias, line, wc)
-    local action = wc.action
-    local keyword = trim(wc.keyword)
-    if (keyword == "") then
-        Utility.msg_prim(string.format("%s what case?", Utility.pascal_case(action)))
-        return
-    end
-    
-    Inv.clear_data()
-    EnableTrigger("trigger_inv_case_start", true)
-    EnableTrigger("trigger_inv_case_end", true)
-    SendNoEcho("identify " .. keyword)
-    -- Rezit decided to add a blank line between stored list and identify output,
-    -- so add an ending echo of our own...
-    local shortAction = action:lower() == "upload" and "up" or "rm"
-    local endTag = string.format("echo {/%scase}", shortAction)
-SendNoEcho(endTag)
-end
-
-function Inv.case_start(trigger, line, wc)
-    EnableTrigger("trigger_inv_case_start", false)
-    EnableTriggerGroup("triggerg_inv_case", true)
-end
-
-function Inv.case_keywords(trigger, line, wc)
---[===[ This original code inserts simply the case keywords. API requires full
-        lines, but keeping this here in case it's ever useful.
-    Inv.case.keywords = trim(wc.keywords)
-]===]
-    table.insert(Inv.case, line)
-end
-
-function Inv.case_id(trigger, line, wc)
---[===[ Ditto
-    Inv.case.id = trim(wc.id)
-]===]
-    table.insert(Inv.case, line)
-end
-
-function Inv.case_end(trigger, line, wc)
-    EnableTrigger("trigger_inv_case_start", false)
-    EnableTriggerGroup("triggerg_inv_case", false)
-    if (wc.action == "up") then
-        Remote.upload_case()
-    elseif (wc.action == "rm") then
-        Remote.remove_case()
-    end
-end
-]]>
-</script>
-
-
-
-<aliases>
     <alias
      match="^winds\s+upload\s+cards(?<location>.*)$"
      enabled="y"
@@ -341,6 +217,115 @@ function CardHandler.remove(trigger, line, wc)
     end
     
     Remote.remove_card(card)
+end
+]]>
+</script>
+
+
+
+<aliases>
+    <!-- sequence 101 to evaluate after card upload alias -->
+    <alias
+     match="^winds\s+(?<action>remove|upload)(?<keywords>.*)$"
+     enabled="y"
+     script="CaseHandler.search"
+     regexp="y"
+     ignore_case="y"
+     sequence="101"
+    >
+    </alias>
+</aliases>
+
+<triggers>
+    <trigger
+     name="trigger_case_keywords"
+     group="triggerg_case_search"
+     match="^\|\s+Keywords\s+:(?<keywords>.+)\|$"
+     enabled="n"
+     script="CaseHandler.found_keywords"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     name="trigger_case_id"
+     group="triggerg_case_search"
+     match="^\|\s+Id\s+:(?<id>.+)\|$"
+     enabled="n"
+     script="CaseHandler.found_id"
+     regexp="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     name="trigger_case_search_done"
+     group="triggerg_case_search"
+     match="^\{/(?<action>rm|up)case\}$"
+     enabled="n"
+     script="CaseHandler.search_done"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+</triggers>
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- Case Handler
+--------------------------------------------------
+
+CaseHandler = {}
+
+function CaseHandler.search(alias, line, wc)
+    local action = wc.action
+    local keywords = trim(wc.keywords)
+    if (keywords == "") then
+        Utility.msg_prim(string.format("%s what case?", Utility.pascal_case(action)))
+        return
+    end
+    
+    CaseHandler.cases = {}
+    EnableTrigger("trigger_case_keywords", true)
+    EnableTrigger("trigger_case_search_done", true)
+    
+    for keyword in keywords:gmatch("%S+") do
+        SendNoEcho(string.format("identify %s", keyword))
+    end
+    
+    local shortAction = action:lower() == "upload" and "up" or "rm"
+    SendNoEcho(string.format("echo {/%scase}", shortAction))
+end
+
+function CaseHandler.found_keywords(trigger, line, wc)
+    if (not line:match("case collector[1-4] %d+ %d+ NO_RESTRING")) then
+        return -- Not a Winds case.
+    end
+    table.insert(CaseHandler.cases, line)
+    EnableTrigger("trigger_case_id")
+end
+
+function CaseHandler.found_id(trigger, line, wc)
+    -- This trigger is active only when we've already found a case,
+    -- so no need to do any checks.
+    table.insert(CaseHandler.cases, line)
+    EnableTrigger(trigger, false)
+end
+
+function CaseHandler.search_done(trigger, line, wc)
+    EnableTriggerGroup("triggerg_case_search", false)
+    -- Need an even number of elements, keyword and id for each case.
+    if (#CaseHandler.cases == 0 or #CaseHandler.cases % 2 == 1) then
+        Utility.msg_prim("No Winds cases found.")
+        return
+    end
+    
+    if (wc.action == "up") then
+        Remote.upload_cases(CaseHandler.cases)
+    elseif (wc.action == "rm") then
+        Remote.remove_case(CaseHandler.cases)
+    end
 end
 ]]>
 </script>
@@ -542,65 +527,59 @@ function Remote.remove_card(card)
     return true
 end
 
-function Remote.upload_case()
+function Remote.upload_cases(cases)
     local name = GMCP.char_name()
     if (not name or name == "") then
-        Utility.msg_prim("Unable to upload case. GMCP data not available.")
-        return false
-    end
-    
-    -- Two lines required. First must show the item to be a Winds case.
-    local keywordMatch = "case collector[1-4] %d+ %d+ NO_RESTRING"
-    if (#Inv.case < 2 or not Inv.case[1]:match(keywordMatch)) then
-        Utility.msg_prim("No Winds case found.")
+        Utility.msg_prim("Unable to upload cases. GMCP data not available.")
         return false
     end
     
     if (not Remote.char_exists(name)) then
-        Utility.msg_prim("Unable to upload case.")
+        Utility.msg_prim("Unable to upload cases.")
         return false
     end
     
     local url = string.format("%s%s/upcase", Remote.API, name)
-    local data = string.format("cases=%s", table.concat(Inv.case, "\n")) 
+    local data = string.format("cases=%s", table.concat(cases, "\n")) 
     local response = Remote.post(url, data)
     if not (response and response.success) then
-        Utility.msg_prim("Failed to upload case.")
+        Utility.msg_prim("Failed to upload cases.")
         return false
     end
     
-    -- Success can return `0 cases uploaded` if the case already exists. Change
+    -- Success can return `0 cases uploaded` if the cases already exist. Change
     -- this message to something more user-friendly.
     local msg = response.result
     local quantity = tonumber(msg:match("^(%d+)"))
     if (quantity == 0) then
-        msg = msg:gsub("0 cases", "1 case")
+        quantity = #cases / 2
+        local new = string.format("%d case%s", quantity, quantity > 1 and "s" or "")
+        msg = msg:gsub("0 cases", new)
     end
+    
     Utility.msg_prim(msg)
     Remote.offer_trades()
     return true
 end
 
-function Remote.remove_case()
+function Remote.remove_case(cases)
     local name = GMCP.char_name()
     if (not name or name == "") then
-        Utility.msg_prim("Unable to remove case. GMCP data not available.")
+        Utility.msg_prim("Unable to remove cases. GMCP data not available.")
         return false
     end
     
-    -- Two lines required. First must show the item to be a Winds case.
-    local keywordMatch = "case collector[1-4] %d+ %d+ NO_RESTRING"
-    if (#Inv.case < 2 or not Inv.case[1]:match(keywordMatch)) then
-        Utility.msg_prim("No Winds case found.")
+    if (#cases < 2) then
+        Utility.msg_prim("No Winds cases found.")
         return false
     end
     
     if (not Remote.char_exists(name)) then
-        Utility.msg_prim("Unable to remove case.")
+        Utility.msg_prim("Unable to remove cases.")
         return false
     end
     
-    local id = Inv.case[2]:match("%d+")
+    local id = cases[2]:match("%d+")
     local url = string.format("%s%s/rmcase/%s", Remote.API, name, id)
     local response = Remote.post(url)
     if not (response) then
@@ -983,7 +962,6 @@ Utility = {}
 function Utility.initialize()
     local modules = {
         Config,
-        Inv,
         Remote,
     }
     for _, module in ipairs(modules) do
