@@ -1005,6 +1005,7 @@ function Help.topics()
         {name="upload", desc="Uploading cases and cards"},
         {name="remove", desc="Removing cases and cards"},
         {name="trades", desc="Displaying trades"},
+        {name="search", desc="Searching for cards"},
         {name="misc", desc="Misc commands"},
     }
     
@@ -1029,7 +1030,7 @@ function Help.show_topic(alias, line, wc)
     local topics = {
         ["config"] = Help.config, ["upload"] = Help.upload,
         ["remove"] = Help.remove, ["trades"] = Help.trades,
-        ["misc"] = Help.misc,
+        ["search"] = Help.search, ["misc"] = Help.misc,
     }
     local function no_topic()
         Utility.msg_prim("No help topic with that name.")
@@ -1127,6 +1128,22 @@ Adding a player's name at the end of the command will limit
 your search to trades with only that particular player.
 This can be useful if you develop a regular trading part-
 ner, or simply to cut down on spam.
+]]
+    Utility.print(text)
+end
+
+function Help.search()
+    Utility.print("                @WWinds Trader Help -- Search@w                ")
+    Utility.print(string.rep("=", 60))
+    local text = [[
+    Syntax: @Ywinds search market@w
+This plugin can help you more easily identify cards by their
+case. Currently, only market searches are supported. Simply
+type @Ywinds search market @wto see a list of all Winds cards
+currently on the longterm marketplace, along with the case
+to which each belongs.
+Thanks to Algaru for suggesting this addition and providing
+the original code (@Chttps://pastebin.com/FscbZdKz@w).
 ]]
     Utility.print(text)
 end
