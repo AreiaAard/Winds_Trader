@@ -17,7 +17,7 @@
 <![CDATA[
 Abbreviated Help:
 
-Type 'winds tradehelp' for main help topics.
+Type 'winds help' for main help topics.
 Type 'winds upload case' to upload a case in your inventory.
 Type 'winds upload cards' to upload dupes in your inventory.
 Type 'winds trades 1234' to view all possible trades.
@@ -970,9 +970,18 @@ end
 
 
 
+<!--
+    Modified these aliases to allow 'winds help' as well as 'winds tradehelp'
+    in v1.2. This will mean a clash with this plugin's main help menu and the
+    helpfile for Endymion's Winds Epic plugin, but typing and remembering
+    'winds tradehelp' was just not ideal. Since this won't affect the display
+    of this plugin's actual helpfiles (e.g., 'winds help upload'), the clash
+    shouldn't really be too bad.
+-->
+
 <aliases>
     <alias
-     match="^winds\s+tradehelp$"
+     match="^winds\s+(?:trade)?help$"
      enabled="y"
      script="Help.topics"
      regexp="y"
@@ -981,7 +990,7 @@ end
     >
     </alias>
     <alias
-     match="^winds\s+tradehelp\s+(?<topic>\w+)$"
+     match="^winds\s+(?:trade)?help\s+(?<topic>\w+)$"
      enabled="y"
      script="Help.show_topic"
      regexp="y"
@@ -1263,7 +1272,7 @@ end
 
 function OnPluginInstall()
     Utility.initialize()
-    Utility.msg_prim("Plugin installed. Submit @Ywinds tradehelp @wfor help topics.")
+    Utility.msg_prim("Plugin installed. Submit @Ywinds help @wfor help topics.")
 end
 
 function OnPluginEnable()
