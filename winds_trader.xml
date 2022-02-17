@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="1.20"
+   version="1.21"
    >
 <description trim="y">
 <![CDATA[
@@ -1024,8 +1024,8 @@ function Help.topics()
     Utility.print("              @WWinds Trader Help -- Help Topics              ")
     Utility.print(string.rep("=", 60))
     for _, topic in ipairs(topics) do
-        local action = "winds tradehelp " .. topic.name
-        local text = "winds tradehelp " .. topic.name
+        local action = "winds help " .. topic.name
+        local text = "winds help " .. topic.name
         local hint = string.format("Show %s help", topic.name)
         Tell("  ")
         Hyperlink(action, text, hint, fgHighlight, bg, false)
