@@ -753,6 +753,207 @@ end
 
 
 
+<aliases>
+    <alias
+     match="^winds\s+search\s+market$"
+     enabled="y"
+     script="Search.lbid"
+     regexp="y"
+     ignore_case="y"
+     sequence="100"
+    >
+    </alias>
+</aliases>
+
+<triggers>
+    <trigger
+     group="found_winds_lbid"
+     match="^Num    Item Description             Lvl  Type Last Bid      Bids Time Left$"
+     enabled="n"
+     script="Search.lbid_header"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="found_winds_lbid"
+     match="^------ ---------------------------- --- ----- ------------- ---- -------------$"
+     enabled="n"
+     script="Search.lbid_bar"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="found_winds_lbid"
+     match="^[\s\*]+(?<num>\d{1,5})\s+(?<item>.{28})\s+(?<level>\d{1,3})\s+(?<buyout>\*?)(?<type>Gold|Qp)\s+(?<lastBid>[\d,]{1,13})\s+(?<bids>\d{1,4})\s+(?<timeLeft>.+)$"
+     enabled="n"
+     script="Search.lbid_item"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+    <trigger
+     group="found_winds_lbid"
+     match="^------------------------------------------------------------------------------$"
+     enabled="n"
+     script="Search.lbid_footer"
+     regexp="y"
+     omit_from_output="y"
+     sequence="100"
+    >
+    </trigger>
+</triggers>
+
+<script>
+<![CDATA[
+--------------------------------------------------
+-- Card Searching
+--------------------------------------------------
+
+Search = {}
+
+Search.cards = {
+    ["Abelinc"] = 2, ["Adam"] = 2, ["Aisis"] = 3, ["Alessandrew"] = 1,
+    ["Alhena"] = 1, ["Althalus"] = 4, ["Anaristos"] = 4, ["Andersen"] = 3,
+    ["Androg"] = 1, ["Ani"] = 1, ["Arist"] = 2, ["Arius"] = 3,
+    ["Arthon"] = 3, ["Baejita"] = 4, ["Baktosh"] = 2, ["Banichi"] = 4,
+    ["Barchetta"] = 3, ["Barid"] = 3, ["Bejito"] = 1, ["Belmont"] = 3,
+    ["Blug"] = 2, ["Blunt"] = 2, ["Blurp"] = 1, ["Bonjour"] = 1,
+    ["Breeze"] = 3, ["Broud"] = 4, ["Cadaver"] = 1, ["Candace"] = 3,
+    ["Cartman"] = 1, ["Cassin"] = 4, ["Cerridwen"] = 3, ["Chich"] = 2,
+    ["Chuft"] = 1, ["Citron"] = 4, ["Claire"] = 4, ["Confusion"] = 3,
+    ["Cordelia"] = 1, ["Corliss"] = 2, ["Craven"] = 1, ["Curi"] = 1,
+    ["Cynic"] = 4, ["Dachande"] = 2, ["Dadrake"] = 4, ["DagasWolf"] = 3,
+    ["Dagonet"] = 1, ["Danj"] = 2, ["Darkmoore"] = 4, ["Dave"] = 1,
+    ["Deadman"] = 2, ["Delgar"] = 2, ["Delight"] = 3, ["Demonspawn"] = 1,
+    ["Dereliction"] = 1, ["Dexter"] = 1, ["Dexx"] = 2, ["Dhamon"] = 3,
+    ["Dirtworm"] = 3, ["DjVoltron"] = 1, ["Domain"] = 1, ["Dreamfyre"] = 4,
+    ["Eclaboussure"] = 3, ["Edit"] = 2, ["Elisa"] = 4, ["Entreri"] = 4,
+    ["Erikson"] = 2, ["Euphonix"] = 3, ["Evie"] = 1, ["FatesDagger"] = 1,
+    ["Fetard"] = 2, ["Fiendish"] = 2, ["FieryFlame"] = 3, ["Filt"] = 3,
+    ["Freddie"] = 2, ["Fufa"] = 4, ["Galinthas"] = 1, ["Gangar"] = 3,
+    ["Gastro"] = 2, ["Geneve"] = 4, ["Ghaan"] = 3, ["Glimmer"] = 3,
+    ["Gren"] = 1, ["Guinness"] = 4, ["Halo"] = 3, ["Hank"] = 1,
+    ["Harvester"] = 4, ["Hiroki"] = 1, ["Icecool"] = 2, ["Iceman"] = 2,
+    ["Ikyu"] = 3, ["Ixultar"] = 2, ["Jaenelle"] = 3, ["Jennie"] = 1,
+    ["Jernau"] = 3, ["Juli"] = 3, ["JustMe"] = 4, ["Kaitlyn"] = 3,
+    ["Kalince"] = 4, ["Kharpern"] = 4, ["Khelda"] = 3, ["Kinson"] = 3,
+    ["Koala"] = 2, ["Korridel"] = 4, ["Kt"] = 3, ["Kya"] = 2,
+    ["Lamoxes"] = 3, ["Lao"] = 4, ["Laren"] = 4, ["Lasher"] = 4,
+    ["Leaf"] = 1, ["Level"] = 2, ["Liber"] = 2, ["Linoge"] = 1,
+    ["Llarian"] = 3, ["Lumina"] = 1, ["Madcatz"] = 1, ["Madrox"] = 1,
+    ["Maerchyng"] = 4, ["Majic"] = 1, ["Marauder"] = 1, ["Marc"] = 1,
+    ["Marcon"] = 4, ["Mars"] = 2, ["Martin"] = 3, ["Mashai"] = 4,
+    ["Mendaloth"] = 2, ["Metallica"] = 3, ["Methdemon"] = 4, ["Milquetoast"] = 2,
+    ["Mique"] = 2, ["Mirrim"] = 2, ["Moolb"] = 1, ["Moons"] = 4,
+    ["Moradin"] = 2, ["Mordist"] = 3, ["Morn"] = 2, ["Nasus"] = 2,
+    ["Natallia"] = 3, ["Neeper"] = 3, ["Ninja"] = 1, ["Nocilis"] = 2,
+    ["Obyron"] = 4, ["Oladon"] = 1, ["OrcWarrior"] = 4, ["Original"] = 1,
+    ["Orsiphantes"] = 3, ["Paipals"] = 2, ["Pane"] = 3, ["Paramore"] = 4,
+    ["Penthesilea"] = 4, ["Pleiades"] = 2, ["Pointless"] = 4, ["Portia"] = 2,
+    ["Psychopath"] = 3, ["Pudge"] = 4, ["Pumpkin"] = 2, ["Quadrapus"] = 1,
+    ["Rafaele"] = 1, ["Rau"] = 1, ["Razor"] = 2, ["Redryn"] = 2,
+    ["Rezit"] = 1, ["Rhuli"] = 4, ["Robbo"] = 2, ["Rocky"] = 1,
+    ["Roell"] = 3, ["Rojaz"] = 2, ["Ruiner"] = 1, ["Rumour"] = 4,
+    ["Saartje"] = 1, ["Sagen"] = 4, ["Sarlock"] = 3, ["Senja"] = 3,
+    ["ShadowFax"] = 3, ["Sirene"] = 4, ["Skarren"] = 4, ["Slith"] = 2,
+    ["SonRokito"] = 2, ["Songbird"] = 3, ["Speedster"] = 1, ["Stormlord"] = 1,
+    ["Styliann"] = 4, ["Sunset"] = 4, ["Sylvain"] = 4, ["Synthesizer"] = 3,
+    ["Tallie"] = 3, ["Tela"] = 4, ["Tenchi"] = 4, ["Teoyaomqui"] = 4,
+    ["Terrill"] = 3, ["Testasterone"] = 4, ["Thirstan"] = 3, ["Timeghost"] = 4,
+    ["Tinada"] = 2, ["Tirica"] = 1, ["TrEz"] = 1, ["Trachx"] = 2,
+    ["Tripitaka"] = 3, ["Trollemite"] = 1, ["Trurien"] = 2, ["Turie"] = 2,
+    ["Tyanon"] = 3, ["Tymme"] = 3, ["Tzitzimime"] = 2, ["Uncival"] = 3,
+    ["Unforgiven"] = 2, ["Valkur"] = 4, ["Vanion"] = 1, ["Velvet"] = 4,
+    ["Vesuvius"] = 4, ["Vilgan"] = 4, ["Vitae"] = 4, ["Wars"] = 2,
+    ["Whisper"] = 1, ["Whitdjinn"] = 2, ["Wire"] = 2, ["Wojmil"] = 1,
+    ["Wolfe"] = 3, ["Xantcha"] = 3, ["Xeno"] = 4, ["Yandros"] = 4,
+    ["Yowza"] = 1, ["Zengo"] = 2, ["Zolstead"] = 1, ["Zoot"] = 2,
+}
+
+
+function Search.lookup(name)
+    return Search.cards[name]
+end
+
+function Search.lbid(alias, line, wc)
+    EnableTriggerGroup("found_winds_lbid", true)
+    TelnetOptionOff(TELOPT_PAGING) -- Temporarily disable paging if it is on
+    Send("market search 201 201 treasure")
+    TelnetOptionOn(TELOPT_PAGING) -- Re-enable paging if it was on
+end
+
+function Search.lbid_header(trigger, line, wc, styles)
+    local textColor = "cyan"
+    local backColor = "black"
+    for _, style in ipairs(styles) do
+        textColor = RGBColourToName(style.textcolour)
+        backColor = RGBColourToName(style.backcolour)
+        ColourTell(textColor, backColor, style.text)
+    end
+    -- Borrow colors from last style run.
+    ColourTell(textColor, backColor, "     Case")
+    Note()
+end
+
+function Search.lbid_bar(trigger, line, wc, styles)
+    local textColor = "white"
+    local backColor = "black"
+    for _, style in ipairs(styles) do
+        textColor = RGBColourToName(style.textcolour)
+        backColor = RGBColourToName(style.backcolour)
+        ColourTell(textColor, backColor, style.text)
+    end
+    -- Borrow colors from last style run.
+    ColourTell(textColor, backColor, " --------")
+    Note()
+end 
+
+function Search.lbid_item(trigger, line, wc, styles)
+    local card = wc.item:match("^(%w+) Fantasy Series")
+    local case = Search.lookup(card)
+    if (not case) then
+        -- Item is not a Winds card. The trigger omits the line, but
+        -- otherwise no need to do anything.
+        return
+    end
+
+    for _, style in ipairs(styles) do
+        local textColor = RGBColourToName(style.textcolour)
+        local backColor = RGBColourToName(style.backcolour)
+        ColourTell(textColor, backColor, style.text)
+    end
+    ColourTell(
+        "cyan", "", " (",
+        "white", "", "Case ",
+        "white", "", case,
+        "cyan", "", ")"
+    )
+    Note()
+end
+
+function Search.lbid_footer(trigger, line, wc, styles)
+    EnableTriggerGroup("found_winds_lbid", false)
+    local textColor = "white"
+    local backColor = "black"
+    for _, style in ipairs(styles) do
+        textColor = RGBColourToName(style.textcolour)
+        backColor = RGBColourToName(style.backcolour)
+        ColourTell(textColor, backColor, style.text)
+    end
+    -- Borrow colors from last style run.
+    ColourTell(textColor, backColor, "---------")
+    Note()
+end 
+]]>
+</script>
+
+
+
 <script>
 <![CDATA[
 --------------------------------------------------
