@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-11-08 12:00:00"
    requires="5.06"
-   version="1.21"
+   version="1.22"
    >
 <description trim="y">
 <![CDATA[
@@ -768,7 +768,7 @@ end
 <triggers>
     <trigger
      group="found_winds_lbid"
-     match="^Num    Item Description             Lvl  Type Last Bid      Bids Time Left$"
+     match="^Num\s+Item Description\s+Lvl\s+Type\s+Last Bid\s+Bids\s+Time Left$"
      enabled="n"
      script="Search.lbid_header"
      regexp="y"
@@ -778,7 +778,7 @@ end
     </trigger>
     <trigger
      group="found_winds_lbid"
-     match="^------ ---------------------------- --- ----- ------------- ---- -------------$"
+     match="^-{6} -{28} -{3} -{5} -{16} -{4} -{13}$"
      enabled="n"
      script="Search.lbid_bar"
      regexp="y"
@@ -788,7 +788,7 @@ end
     </trigger>
     <trigger
      group="found_winds_lbid"
-     match="^[\s\*]+(?<num>\d{1,5})\s+(?<item>.{28})\s+(?<level>\d{1,3})\s+(?<buyout>\*?)(?<type>Gold|Qp)\s+(?<lastBid>[\d,]{1,13})\s+(?<bids>\d{1,4})\s+(?<timeLeft>.+)$"
+     match="^[\s\*]+(?<num>\d{1,5})\s+(?<item>.{28})\s+(?<level>\d{1,3})\s+(?<buyout>\*?)(?<type>Gold|Qp)\s+(?<lastBid>[\d,]{1,15})(?<mine>\*|\s)\s*(?<bids>\d{1,4})\s+(?<timeLeft>.+)$"
      enabled="n"
      script="Search.lbid_item"
      regexp="y"
@@ -798,7 +798,7 @@ end
     </trigger>
     <trigger
      group="found_winds_lbid"
-     match="^------------------------------------------------------------------------------$"
+     match="^-{81}$"
      enabled="n"
      script="Search.lbid_footer"
      regexp="y"
